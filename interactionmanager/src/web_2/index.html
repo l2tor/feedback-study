@@ -1,0 +1,428 @@
+﻿<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <link rel="stylesheet" href="css\style.css">
+    <!--script src="js/libs/qimessaging/1.0/jquery.min.js"></script-->
+    <script src="js/libs/jquery-3.3.1.min.js"></script>
+    <script src="js/libs/jquery-ui.js"></script>
+    <script src="js/libs/jquery.ui.touch-punch.min.js"></script>
+    <script src="js/libs/qi/2/qi.js"></script>
+    <script src="../../../robotip.js"></script>
+    <script src="js/study_1.js"></script>
+    <script type="text/javascript">
+        document.addEventListener("contextmenu", event=>event.preventDefault());
+        document.addEventListener("touchstart", function(e) {
+            if (e.targetTouches.length === 2) {
+                e.preventDefault();
+            }
+        }, {passive: false});
+
+        var _session = null;
+        var img_base_path = "img/";
+        var start_time = null;
+        var end_time = null;
+        var buttons_active = false;
+        var last_button_clicked = null;
+        var intro = true;
+        var face_buttons_active = false;
+        $(document).ready(function () {
+            $(".berry").draggable({scroll:false});
+            $(".div_animal").droppable({
+                activeClass:"ui-state-active",
+                //hoverClass: "rotate",
+                accept:".berry",
+                drop: function(event,ui) {
+                  ui.draggable.fadeOut(function () {
+                    ui.draggable.remove();
+                    sendRequest("vadFake", "true");
+                    // get time of the answer
+                    c_time = Date.now();
+                    // calculate the length of the run and
+                    overall_time = c_time - start_time;
+                    answer = event.target.classList[event.target.classList.length-1];
+                    sendRequest("berry_dropped", answer + ";" + overall_time);
+                  });
+                }
+            });
+
+            function disconnected() {
+                console.log("disconnected");
+            }
+
+            // connect to Nao
+            QiSession(function (session) {
+                _session = session;
+                session.service("ALMemory").then(function (ALMemory) {
+                    // accepts an event called "event_0" and prints the delivered parameter
+                    ALMemory.subscriber('set_images').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            console.log("=== SET IMAGES ===");
+                            console.log(result);
+                            var task_objects = JSON.parse(result);
+
+                            $("[id^=div]").css("display", "none")
+                            $("[id^=div]").css('opacity', '');
+
+                            // set the new image paths
+                            for (var i = 0; i < task_objects.length; ++i) {
+                                $("#img_" + i).attr("src", img_base_path + task_objects[i].toLowerCase() + "_bg.png");
+                                $("#div_" + i).attr("ontouchstart", "sendAnswer('" + task_objects[i] + "', this);");
+                                $("#div_" + i).attr("onclick", "sendAnswer('" + task_objects[i] + "', this);");
+                                $("#div_" + i).css("display", "block");
+
+                                var classes = $("#div_" + i).attr("class");
+                                var spltClasses = classes.split(" ");
+                                spltClasses[spltClasses.length-1] = task_objects[i].toLowerCase();
+                                classes = spltClasses.join(" ");
+                                $("#div_" + i).attr("class", classes);
+                                //$("#div_" + i).css("-webkit-filter", "grayscale(1)");
+                                //$("#div_" + i).css("filter", "grayscale(1)");
+                            }
+
+                            $(last_button_clicked).find(".correct").css("display", "none");
+                            $(last_button_clicked).find(".incorrect").css("display", "none");
+                        });
+                    });
+                    ALMemory.subscriber('show_screen').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            console.log("show_screen");
+                            console.log(result);
+                            if (result=="spotlight") {
+                                $("#body").css("background-image", "url(img/background_spotlight.png)");
+                            } else if (result=="game"){
+                                $("#body").css("background-image", "url(img/interaction_screen_empty.png)");
+                            } else {
+                                $("#body").css("background-image", "url(img/background_gui.png)");
+                            }
+                        });
+                    });
+                    ALMemory.subscriber('show_animal_intro').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            //$("#big_img_div>img").attr("src", img_base_path + result + "_vorstellung.png");
+                            //$("#big_img_div>div").html(result);
+                            //$("#big_img_div").css("display", "block");
+                            $("#body").css("background-image", "url(img/" + result + "_vorstellung.png");
+                        });
+                    });
+                    ALMemory.subscriber('val_animal_intro').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            $("#img_forward").css("display", "block");
+                        });
+                    });
+                    ALMemory.subscriber('show_images').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            console.log("=== SHOW IMAGES");
+                            /*$('#div_0').css('opacity', '');
+                            $('#div_1').css('opacity', '');
+                            $('#div_2').css('opacity', '');
+                            $('#div_3').css('opacity', '');
+
+                            $(last_button_clicked).find( ".correct" ).css( "display", "none" );
+                            $(last_button_clicked).find( ".incorrect" ).css( "display", "none" );
+                            */
+                            $('#container').css("display", "block");
+
+                            $(last_button_clicked).find( ".correct" ).css( "display", "none" );
+                            $(last_button_clicked).find( ".incorrect" ).css( "display", "none" );
+
+                            if (result == true) {
+                                buttons_active = true;
+                                console.log('=== setting start time ===');
+                                start_time = Date.now();
+                            }
+                        });
+                    });
+                    ALMemory.subscriber('activate_images').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            /*for (var i = 0; i < 4; i++) {
+                                $("#div_" + i).css("-webkit-filter", "");
+                                $("#div_" + i).css("filter", "");
+                            }*/
+                            $("[id^=div]").css("filter", "");
+                            $("[id^=div]").css("-webkit-filter", "");
+
+			    if (result != "False") {
+                            	buttons_active = true;
+			    }
+                            console.log('=== setting start time ===');
+                            start_time = Date.now();
+                        });
+                    });
+                    ALMemory.subscriber('hide_images').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            $('#container').css("display", "none");
+                        });
+                    });
+                    ALMemory.subscriber('validation').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            console.log(result);
+
+                            var res = JSON.parse(result);
+
+                            /*$('#div_0').css('opacity', '0.2');
+                            $('#div_1').css('opacity', '0.2');
+                            $('#div_2').css('opacity', '0.2');
+                            $('#div_3').css('opacity', '0.2');*/
+
+                            $(last_button_clicked).css('opacity', '1.0');
+
+                            if (res["is_correct"] == "True") {
+                               // $("[id^=div]").css('opacity', '0.2');
+                                $(last_button_clicked).find(".correct").css("display", "inline");
+                                $(last_button_clicked).css('opacity', '1.0');
+                            }
+                            else {
+                               // $("[id^=div]").css('opacity', '0.2');
+                                $(last_button_clicked).find(".incorrect").css("display", "inline");
+                                $(last_button_clicked).css('opacity', '1.0');
+                            }
+                            /*$('#container').css("display", "none");
+                            $("#img_cor").attr("src", img_base_path + result + ".png");
+                            $('#validation').css("display", "block");*/
+                        });
+                    });
+                    ALMemory.subscriber('start_event').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            $('#container').css("display", "none");
+                        });
+                    });
+                    ALMemory.subscriber('show_faces').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            console.log(result);
+                            var tmp_str = result.split(";")
+                            if (tmp_str[1] == "ni") {
+                                intro = false;
+                            }
+                            if (result == "true;i") {
+                                $('#faces').show();
+                            }
+                            else if (result == "false;i") {
+                                $('#faces').hide();
+                            }
+                            else if (result == "true;ni") {
+                                $('#nointro_faces').show();
+                            }
+                            else if (result == "false;ni") {
+                                $('#nointro_faces').hide();
+                            }
+                        });
+                    });
+                    ALMemory.subscriber('activate_faces').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            console.log(result);
+                            face_buttons_active = true;
+                        });
+                    });
+                    ALMemory.subscriber('show_start_button').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            $('#container').css("display", "none");
+                            $('#startbutton').show();
+                        });
+                    });
+                    ALMemory.subscriber('show_fruits').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            if (result == "0") {
+                                //$('#drag_berries').css("display", "block");
+                                //$("[id^=berry]").css('display', 'block');
+                                $("#korb").css("display", "block")
+                            } else {
+                                $('#berry_'+result).css("display", "block");
+                            }
+                        });
+                    });
+                    ALMemory.subscriber('val_animal_intro_hide').then(function (sub) {
+                        sub.signal.connect(function (result) {
+                            $("#big_img_div").css("display", "none");
+                            $("#img_forward").css("display", "none");
+                        });
+                    });
+                });
+            }, disconnected, ROBOT_IP);
+        });
+
+        /*function sendAnswer(animal, div) {
+            console.log("Answer: " + animal);
+            sendRequest("given_answer", animal);
+        }
+
+        // send an event via naoqi
+        function sendRequest(eventName, eventParams) {
+            console.log(eventName + " " + eventParams);
+            _session.service('ALMemory').then(function (ALMemory) {
+                ALMemory.raiseEvent(eventName, eventParams);
+            });
+        }*/
+
+        function nextAnimalIntro() {
+            sendRequest('vadFake', 'true');
+        }
+
+        function start_button() {
+            $('#startbutton').hide();
+
+            sendRequest("start_button_clicked");
+        }
+
+        function face_button(value) {
+            console.log("test");
+            if (face_buttons_active) {
+                if (value) {
+                    sendRequest("test_run", true);
+                    if (intro) {
+                        $('#faces').hide();
+                    } else {
+                        $('#nointro_faces').hide();
+                    }
+                } else {
+                    $('#sad_face').hide();
+                    sendRequest("did_not_understand", "");
+                }
+            }
+        }
+        var berry_list = [];
+
+        function make_grape(evt, berry) {
+            console.log(evt);
+            $("#" + berry.id + ">img").attr("src", "img/berry.png");
+            $("#" + berry.id + ">img").css("width", "100px");
+            $("#" + berry.id).attr("onmousedown", "");
+            $("#" + berry.id).attr("ontouchstart", "");
+            $("#" + berry.id).css("left", evt.screenX - 50);
+            $("#" + berry.id).css("top", evt.screenY - 35);            
+        }
+    </script>
+</head>
+<body id="body" oncontextmenu="return false;">
+    <div id="wrapper">
+        <div id="faces" style="display: none; width: 100%; text-align: center; height: 50%; margin-top: 12.5%">
+            <img src="img/happy_face.png" id="happy_face" style="height: 90%" onclick="face_button(true);" ontouchstart="face_button(true);" />
+            <img src="img/sad_face.png" id="sad_face" style="height: 90%; margin-left: 10%" onclick="face_button(false);" ontouchstart="face_button(false);" />
+        </div>
+
+        <div id="container">
+            <div id="div_0" class="div_animal">
+                <img id="img_0" class="animal_img" src="" />
+                <img class="correct" src="img/happy_face.png" />
+                <img class="incorrect" src="img/sad_face.png" />
+            </div>
+            <div id="div_1" class="div_animal">
+                <img id="img_1" class="animal_img" src="" />
+                <img class="correct" src="img/happy_face.png" />
+                <img class="incorrect" src="img/sad_face.png" />
+            </div>
+            <div id="div_2" class="div_animal">
+                <img id="img_2" class="animal_img" src="" />
+                <img class="correct" src="img/happy_face.png" />
+                <img class="incorrect" src="img/sad_face.png" />
+            </div>
+            <div id="div_3" class="div_animal">
+                <img id="img_3" class="animal_img" src="" />
+                <img class="correct" src="img/happy_face.png" />
+                <img class="incorrect" src="img/sad_face.png" />
+            </div>
+            <div id="div_4" class="div_animal">
+                <img id="img_4" class="animal_img" src="" />
+                <img class="correct" src="img/happy_face.png" />
+                <img class="incorrect" src="img/sad_face.png" />
+            </div>
+            <div id="div_5" class="div_animal">
+                <img id="img_5" class="animal_img" src="" />
+                <img class="correct" src="img/happy_face.png" />
+                <img class="incorrect" src="img/sad_face.png" />
+            </div>
+            <div id="div_6" class="div_animal">
+                <img id="img_6" class="animal_img" src="" />
+                <img class="correct" src="img/happy_face.png" />
+                <img class="incorrect" src="img/sad_face.png" />
+            </div>
+            <div id="div_7" class="div_animal">
+                <img id="img_7" class="animal_img" src="" />
+                <img class="correct" src="img/happy_face.png" />
+                <img class="incorrect" src="img/sad_face.png" />
+            </div>
+            <div id="div_8" class="div_animal">
+                <img id="img_8" class="animal_img" src="" />
+                <img class="correct" src="img/happy_face.png" />
+                <img class="incorrect" src="img/sad_face.png" />
+            </div>
+        </div>
+        <div id="nointro_faces" style="display: none; width: 100%; text-align: center; height: 50%; margin-top: 12.5%">
+            <img src="img/happy_face2.png" style="height: 100%" onclick="face_button(true);" ontouchstart="face_button(true);" />
+        </div>
+        <div id="startbutton" style="display: none; width: 100%; text-align: center; height: 50%; margin-top: 12.5%">
+            <img src="img/happy_face2.png" style="height: 100%" onclick="start_button();" ontouchstart="start_button();" />
+        </div>
+        <!--div id="big_img_div">
+            <img id="big_img" src="" /><br />
+            <div></div>
+        </div-->
+        <div id="img_forward">
+            <img src="img/arrow_right.png" onclick="nextAnimalIntro();"  onmousedown="nextAnimalIntro();" ontouchstart="nextAnimalIntro();"/>
+        </div>
+    </div>
+    <!--div id="drag_berries"-->
+        <div id="korb" class="berry_2">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_1" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_2" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_3" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_4" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_5" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_6" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_7" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_8" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_9" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+    <!--/div-->
+    <!--div id="drag_berries_2">
+        <div id="berry_10" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_11" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_12" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_13" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_14" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_15" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_16" class="berry" onmousedown="make_grape(event,this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_17" class="berry" onmousedown="make_grape(event, this);" _ontouchstart="make_grape(event, this);">
+            <img src="img/rebe.png" />
+        </div>
+        <div id="berry_18" class="berry" onmousedown="make_grape(event, this);" _ontouchstart="make_grape(event,this);">
+            <img src="img/rebe.png" />
+        </div>
+    </div-->
+    <!--input type="button" onclick="sendRequest('describe_object','');" value="TEST" /-->
+</body>
+</html>

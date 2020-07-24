@@ -1,0 +1,120 @@
+body {
+    /*background-image: url("../img/interaction screen_empty.png");*/
+    background-color: #000;
+    background-size: cover;
+	overflow: hidden;
+	-moz-user-select: none;
+}
+
+#wrapper {
+    max-width: 600px;
+    margin: 0 auto;
+    height:720px;
+	padding-top:150px;
+	overflow:hidden;
+    /*background-image:url(../img/zelt.jpg);*/
+    /*background-size:cover;*/
+}
+
+#img_forward img{
+    width:150px;
+}
+#img_forward {
+    position:absolute;
+    top:535px;
+    left:1100px;
+    display:none;
+}
+
+#big_img_div img {
+    z-index: 1;
+    width: 400px;
+    height: 400px;
+}
+#big_img_div div {
+    z-index:5;
+    margin-top:-30px;
+    padding-top:25px;
+    font-size:3.5em;
+    text-align:center;
+    width:400px;
+    height:100px;
+    background-image:url(../img/banner.png);
+    background-repeat:no-repeat;
+    background-position:center;
+    background-size:inherit;
+}
+
+#big_img_div {
+    position: absolute;
+    top: 550px;
+    left: 740px;
+    display:none;
+}
+
+.correct, .incorrect {
+    display: none;
+    left: 55%;
+    bottom: -5%;
+    width: 50%;
+    position: absolute;
+}
+
+.div_animal {
+    width: 220px;
+    height: 220px;
+}
+
+div[id^='div_'] {
+    display: none;
+    float:left;
+    margin: 10px 10px 10px 10px;
+    position:relative;
+}
+
+.animal_img {
+    width: 220px;
+    height: 220px;
+    background-color: transparent;
+}
+
+.clear_div {
+    clear: both;
+}
+
+#drag_berries, #drag_berries_2 {
+    display:block;
+    position: absolute;
+    right: 20px;
+    bottom: 130px;
+    width:300px;
+    height:100px;
+}
+
+.berry {
+    position:absolute;
+    text-align:center;
+	display:none;
+    left: 1040px;
+    top: 700px;
+}
+
+div[id^='berry_'] {
+    display: none;
+}
+
+.berry img {
+    width: 300px;
+}
+
+.berry_2 {
+    position:absolute;
+    text-align:center;
+	display:none;
+    left: 1040px;
+    top: 700px;
+}
+
+.berry_2 img {
+    width: 300px;
+}
