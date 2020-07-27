@@ -40,7 +40,7 @@ Note that this control panel has more options than are currently implemented in 
 | --- | --- |
 | animalexperimentservice | Output management (speech and gesture production) |
 | interactionmanager | Interaction management (tracks progress through the experiment, decides what to do next) |
-| controlpanel | Web interface used to start the experiment |
+| controlpanel | Interface used to start the experiment |
 
 # Making changes #
 In order to add your own concepts, the following steps are needed:
