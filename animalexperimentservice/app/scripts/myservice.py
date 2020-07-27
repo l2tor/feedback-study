@@ -24,7 +24,7 @@ import sys
 import getopt
 import time
 
-is_test = True
+is_test = False #shorter version to test main functionalities
 
 word_set = ""
 strategy = ""
